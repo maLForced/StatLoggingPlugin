@@ -3,7 +3,7 @@ using Autofac;
 
 namespace StatLoggingPlugin;
 
-public class StatLoggingModule : AssettoServerModule
+public class StatLoggingPluginModule : AssettoServerModule<StatLoggingConfiguration>
 {
     protected override void Load(ContainerBuilder builder)
     {

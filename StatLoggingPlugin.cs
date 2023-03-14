@@ -1,5 +1,6 @@
 using AssettoServer.Server;
 using AssettoServer.Network.Tcp;
+using AssettoServer.Server.Configuration;
 using Serilog;
 using Microsoft.Data.Sqlite;
 
@@ -21,27 +22,37 @@ public class StatLoggingPlugin
     }
 
     private readonly StatLoggingSessionManager _StatLoggingSessionManager;
-    
     private readonly EntryCarManager _entryCarManager;
     public readonly SessionManager _sessionManager;
+    private readonly StatLoggingConfiguration _pluginConfiguration;
+    public readonly ACServerConfiguration _serverConfiguration;
+    private string dbFilePath = @"Data Source=plugins\StatLoggingPlugin\statlogging.db";
 
     private Dictionary<string, clientEntryCarData> _entryCarQueueDictionary = new Dictionary<string, clientEntryCarData>();
 
-    public StatLoggingPlugin(EntryCarManager entryCarManager, SessionManager sessionManager)
+    public StatLoggingPlugin(EntryCarManager entryCarManager, SessionManager sessionManager, ACServerConfiguration serverConfiguration, StatLoggingConfiguration pluginConfiguration)
     {
         Log.Information("------------------------------------");
         Log.Information("Starting: StatLogging Plugin by maL");
         Log.Information("------Original Code from Yhugi------");
         Log.Information("------------------------------------");
 
-        using (var connection = new SqliteConnection("Data Source=statslogging.db")) {
+        _pluginConfiguration = pluginConfiguration;
+        
+        if (_pluginConfiguration.CommonDB == true && _pluginConfiguration.CommonDBFileLocation is not null){
+        Log.Information("CommonDB Selected");
+        Log.Information(_pluginConfiguration.CommonDBFileLocation);
+        dbFilePath = "Data Source=" + _pluginConfiguration.CommonDBFileLocation + @"statlogging.db";
+        }
+        using (var connection = new SqliteConnection(dbFilePath)) {
             connection.Open();
 
                 var command = connection.CreateCommand();
 
                 command.CommandText =
                 @"
-                    CREATE TABLE IF NOT EXISTS connections (
+                    CREATE TABLE IF NOT EXISTS statlogging (
+                        sessionDate INTEGER NOT NULL,
                         steamID TEXT NOT NULL,
                         userName TEXT NOT NULL,
                         carModel TEXT NOT NULL,
@@ -52,7 +63,8 @@ public class StatLoggingPlugin
                         evnCollisions INTEGER NOT NULL,
                         trafficCollisions INTEGER NOT NULL,
                         playerCollisions INTEGER NOT NULL,
-                        majorAccidents INTEGER NOT NULL
+                        majorAccidents INTEGER NOT NULL,
+                        connectedServer text NOT NULL
                     )
                 ";
                 command.ExecuteNonQuery();
@@ -61,7 +73,7 @@ public class StatLoggingPlugin
 
         _entryCarManager = entryCarManager;
         _sessionManager = sessionManager;
-
+        _serverConfiguration = serverConfiguration;
         _StatLoggingSessionManager = new StatLoggingSessionManager(this);
 
         entryCarManager.ClientConnected += OnClientConnected;
@@ -148,15 +160,16 @@ public class StatLoggingPlugin
             TimeSpent = session.CalculateTimeSpent(),
             TopSpeed = session.GetTopSpeed(),
         };
-
-        using (var connection = new SqliteConnection("Data Source=statslogging.db")) {
+        Log.Information(dbFilePath);
+        using (var connection = new SqliteConnection(dbFilePath)) {
             connection.Open();
 
                 var command = connection.CreateCommand();
 
                 command.CommandText =
                 @"
-                    INSERT INTO connections (
+                    INSERT INTO statlogging (
+                        sessionDate,
                         steamID,
                         userName,
                         carModel,
@@ -167,9 +180,11 @@ public class StatLoggingPlugin
                         evnCollisions,
                         trafficCollisions,
                         playerCollisions,
-                        majorAccidents
+                        majorAccidents,
+                        connectedServer
                     )
                     VALUES (
+                        @sessionDate,
                         @steamID,
                         @userName,
                         @carModel,
@@ -180,9 +195,11 @@ public class StatLoggingPlugin
                         @evnCollisions,
                         @trafficCollisions,
                         @playerCollisions,
-                        @majorAccidents
+                        @majorAccidents,
+                        @connectedServer
                     )
                 ";
+                command.Parameters.Add(new SqliteParameter("@sessionDate", session._creationDate));
                 command.Parameters.Add(new SqliteParameter("@steamID", guid));
                 command.Parameters.Add(new SqliteParameter("@userName", newData.Username));
                 command.Parameters.Add(new SqliteParameter("@carModel", car.Model));
@@ -194,6 +211,7 @@ public class StatLoggingPlugin
                 command.Parameters.Add(new SqliteParameter("@trafficCollisions", session._trafficCollisions));
                 command.Parameters.Add(new SqliteParameter("@playerCollisions", session._playerCollisions));
                 command.Parameters.Add(new SqliteParameter("@majorAccidents", session._majorAccidents));
+                command.Parameters.Add(new SqliteParameter("@connectedServer", _pluginConfiguration.ServerName));
                 command.ExecuteNonQuery();
         }
         Log.Information(string.Format("Session data written to database for {0}", client.Name ?? "Unknown"));

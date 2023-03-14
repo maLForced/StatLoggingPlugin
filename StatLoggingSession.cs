@@ -12,7 +12,7 @@ public sealed class StatLoggingSession
 
     private Queue<int> _speedList = new Queue<int>();
     private long _creationTime;
-
+    public long _creationDate;
     private int _topSpeed = 0;
     private int _speedCounter = 0;
     private long _speedSum = 0;
@@ -34,6 +34,7 @@ public sealed class StatLoggingSession
     public void OnCreation()
     {
         _creationTime = _plugin._sessionManager.ServerTimeMilliseconds;
+        _creationDate = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
     public void OnRemove()

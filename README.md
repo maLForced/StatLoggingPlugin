@@ -16,4 +16,20 @@ This plugin creates a sqlite DB where it logs players stats when they leave. Thi
  - Traffic Collisions
  - Player Collisions
  - Major Accidents(Collisions over 150kph relative speed)
+ - Server Specified in extra_cfg.yml
+
+## Configuration
+```yaml
+---
+!StatLoggingConfiguration
+# Use a common DB file for multiple servers.
+# If not set database will be created in server directory
+CommonDB: true
+# Relative or Absolute path of DB
+# Example - 'C:\Users\assetto\Documents\commonserverfolder\'
+# Example - '..\'
+CommonDBFileLocation: '../'
+# Name of server. Will be used in the last column of DB.
+ServerName: 'lac-de-2'
+```
 ###### Cruisin USA
