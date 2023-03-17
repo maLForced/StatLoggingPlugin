@@ -40,9 +40,9 @@ public class StatLoggingPlugin
         _pluginConfiguration = pluginConfiguration;
         
         if (_pluginConfiguration.CommonDB == true && _pluginConfiguration.CommonDBFileLocation is not null){
-        Log.Information("CommonDB Selected");
-        Log.Information(_pluginConfiguration.CommonDBFileLocation);
-        dbFilePath = "Data Source=" + _pluginConfiguration.CommonDBFileLocation + @"statlogging.db";
+            Log.Information("CommonDB Selected");
+            Log.Information(_pluginConfiguration.CommonDBFileLocation);
+            dbFilePath = "Data Source=" + _pluginConfiguration.CommonDBFileLocation + @"statlogging.db";
         }
         using (var connection = new SqliteConnection(dbFilePath)) {
             connection.Open();
@@ -64,7 +64,8 @@ public class StatLoggingPlugin
                         trafficCollisions INTEGER NOT NULL,
                         playerCollisions INTEGER NOT NULL,
                         majorAccidents INTEGER NOT NULL,
-                        connectedServer text NOT NULL
+                        connectedServer text NOT NULL,
+                        track text NOT NULL
                     )
                 ";
                 command.ExecuteNonQuery();
@@ -160,7 +161,6 @@ public class StatLoggingPlugin
             TimeSpent = session.CalculateTimeSpent(),
             TopSpeed = session.GetTopSpeed(),
         };
-        Log.Information(dbFilePath);
         using (var connection = new SqliteConnection(dbFilePath)) {
             connection.Open();
 
@@ -181,7 +181,8 @@ public class StatLoggingPlugin
                         trafficCollisions,
                         playerCollisions,
                         majorAccidents,
-                        connectedServer
+                        connectedServer,
+                        track
                     )
                     VALUES (
                         @sessionDate,
@@ -196,7 +197,8 @@ public class StatLoggingPlugin
                         @trafficCollisions,
                         @playerCollisions,
                         @majorAccidents,
-                        @connectedServer
+                        @connectedServer,
+                        @track
                     )
                 ";
                 command.Parameters.Add(new SqliteParameter("@sessionDate", session._creationDate));
@@ -212,9 +214,10 @@ public class StatLoggingPlugin
                 command.Parameters.Add(new SqliteParameter("@playerCollisions", session._playerCollisions));
                 command.Parameters.Add(new SqliteParameter("@majorAccidents", session._majorAccidents));
                 command.Parameters.Add(new SqliteParameter("@connectedServer", _pluginConfiguration.ServerName));
+                command.Parameters.Add(new SqliteParameter("@track", _serverConfiguration.Server.Track));
                 command.ExecuteNonQuery();
         }
-        Log.Information(string.Format("Session data written to database for {0}", client.Name ?? "Unknown"));
+        Log.Information(string.Format("Stats written: {0}", client.Name ?? "Unknown"));
 
         _entryCarQueueDictionary[$"{model}:{guid}"] = newData;
 
