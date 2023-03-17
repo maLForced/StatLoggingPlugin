@@ -17,6 +17,7 @@ This plugin creates a sqlite DB where it logs players stats when they leave. Thi
  - Player Collisions
  - Major Accidents(Collisions over 150kph relative speed)
  - Server Specified in extra_cfg.yml
+ - Server Track
 
 ## Configuration
 ```yaml
